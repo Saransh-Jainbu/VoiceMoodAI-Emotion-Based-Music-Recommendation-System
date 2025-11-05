@@ -13,15 +13,13 @@ import tempfile
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-model = tf.keras.models.load_model('Emotion_Prediction.keras')
+# Load the model architecture from JSON
+json_file = open('CNN_model.json', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+model = tf.keras.models.model_from_json(loaded_model_json)
 
-# json_file = open('CNN_model.json', 'r')
-# loaded_model_json = json_file.read()
-# json_file.close()
-# loaded_model = tf.keras.models.model_from_json(loaded_model_json)
-# # load weights into new model
-# loaded_model.load_weights("best_model1_weights.keras")
-# print("Loaded model from disk")
+print("Loaded model architecture from disk")
 
 with open('scaler2.pickle', 'rb') as f:
     scaler2 = pickle.load(f)
@@ -43,18 +41,39 @@ def rmse(data, frame_length=2048, hop_length=512):
 
 
 def mfcc(data, sr, frame_length=2048, hop_length=512, flatten: bool = True):
-    mfcc = librosa.feature.mfcc(y=data, sr=sr)
-    return np.squeeze(mfcc.T) if not flatten else np.ravel(mfcc.T)
-
+    # Extract 20 MFCCs
+    mfcc_features = librosa.feature.mfcc(y=data, sr=sr, n_mfcc=20)
+    if flatten:
+        return np.ravel(mfcc_features.T)
+    return np.squeeze(mfcc_features.T)
 
 def extract_features(data, sr=22050, frame_length=2048, hop_length=512):
+    # Ensure consistent length by padding or truncating
+    target_length = int(sr * 2.5)  # 2.5 seconds of audio
+    if len(data) > target_length:
+        data = data[:target_length]
+    else:
+        data = np.pad(data, (0, max(0, target_length - len(data))))
+    
+    # Extract features
     result = np.array([])
-
-    result = np.hstack((result,
-                        zcr(data, frame_length, hop_length),
-                        rmse(data, frame_length, hop_length),
-                        mfcc(data, sr, frame_length, hop_length)
-                        ))
+    
+    # Zero crossing rate
+    zcr_feat = zcr(data, frame_length, hop_length)
+    # RMS energy
+    rmse_feat = rmse(data, frame_length, hop_length)
+    # MFCC
+    mfcc_feat = mfcc(data, sr, frame_length, hop_length)
+    
+    # Combine all features
+    result = np.hstack((result, zcr_feat, rmse_feat, mfcc_feat))
+    
+    # Ensure consistent size by padding if necessary
+    if len(result) < 2376:
+        result = np.pad(result, (0, 2376 - len(result)))
+    elif len(result) > 2376:
+        result = result[:2376]
+        
     return result
 
 
@@ -133,10 +152,21 @@ def convert_to_wav(input_file):
 st.title("Music Recommendation using Voice Emotion")
 uploaded_file = st.file_uploader("Upload Your Audio File", type=["wav"])
 if uploaded_file is not None:
-    name = uploaded_file.name
-    audio_bytes = uploaded_file.read()
-    st.audio(audio_bytes, format='audio/wav')
-    s = prediction(name)
+    # Create a temporary file
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_file:
+        # Write the uploaded file content to the temporary file
+        tmp_file.write(uploaded_file.getvalue())
+        tmp_path = tmp_file.name
+    
+    # Display the audio
+    st.audio(uploaded_file, format='audio/wav')
+    
+    # Make prediction using the temporary file path
+    s = prediction(tmp_path)
     st.write(f"Your mood is {s}")
     dataframe = recommendations(s)
     st.write(dataframe)
+    
+    # Clean up the temporary file
+    import os
+    os.unlink(tmp_path)
