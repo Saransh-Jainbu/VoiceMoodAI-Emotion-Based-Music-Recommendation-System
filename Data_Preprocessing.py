@@ -6,6 +6,7 @@ import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
 import soundfile as sf
+from tqdm import tqdm
 
 import warnings
 if not sys.warnoptions:
@@ -18,7 +19,7 @@ ravdess = "audio_speech_actors_01-24/"
 ravdess_directory_list = os.listdir(ravdess)
 
 Crema = "AudioWAV/"
-Tess = "TESS Toronto emotional speech set data/"
+Tess = "TESS Toronto emotional speech set data/TESS Toronto emotional speech set data/"
 Savee = "ALL/"
 
 file_emotion = []
@@ -80,12 +81,15 @@ for dir in tess_directory_list:
     directories = os.listdir(Tess + dir)
     for file in directories:
         part = file.split('.')[0]
-        part = part.split('_')[2]
-        if part == 'ps':
-            file_emotion.append('surprise')
-        else:
-            file_emotion.append(part)
-        file_path.append(Tess + dir + '/' + file)
+        parts = part.split('_')
+        # TESS files format: OAF_word_emotion.wav or YAF_word_emotion.wav
+        if len(parts) >= 3:
+            emotion = parts[2]
+            if emotion == 'ps':
+                file_emotion.append('surprise')
+            else:
+                file_emotion.append(emotion)
+            file_path.append(Tess + dir + '/' + file)
 
 emotion_df = pd.DataFrame(file_emotion, columns=['Emotions'])
 
@@ -125,21 +129,21 @@ path_df = pd.DataFrame(file_path, columns=['Path'])
 Savee_df = pd.concat([emotion_df, path_df], axis=1)
 
 data_path = pd.concat([ravdess_df, Crema_df, Tess_df, Savee_df], axis = 0)
-# data_path.to_csv("data_path.csv",index=False)
-# print(data_path.head())
-# print(data_path.Emotions.value_counts())
+data_path.to_csv("data_path.csv",index=False)
+print(data_path.head())
+print(data_path.Emotions.value_counts())
 
-# Playing Sound
-data,sr = sf.read('ALL/DC_n17.wav')
+# Playing Sound - Commented out for training
+# data,sr = sf.read('ALL/DC_n17.wav')
 # ipd.Audio(data,rate=sr)
 # playsound("ALL/DC_n17.wav")
 
-plt.figure(figsize=(10, 5))
-spectrogram = librosa.feature.melspectrogram(y=data, sr=sr, n_mels=128,fmax=8000)
-log_spectrogram = librosa.power_to_db(spectrogram)
-librosa.display.specshow(log_spectrogram, y_axis='mel', sr=sr, x_axis='time');
-plt.title('Mel Spectrogram ')
-plt.colorbar(format='%+2.0f dB')
+# plt.figure(figsize=(10, 5))
+# spectrogram = librosa.feature.melspectrogram(y=data, sr=sr, n_mels=128,fmax=8000)
+# log_spectrogram = librosa.power_to_db(spectrogram)
+# librosa.display.specshow(log_spectrogram, y_axis='mel', sr=sr, x_axis='time');
+# plt.title('Mel Spectrogram ')
+# plt.colorbar(format='%+2.0f dB')
 # plt.show()
 
 
@@ -159,39 +163,40 @@ def shift(data):
 def pitch(data, sampling_rate, pitch_factor=0.7):
     return librosa.effects.pitch_shift(data, sr=sampling_rate,n_steps=pitch_factor)
 
+# VISUALIZATION CODE - Commented out for training
 # NORMAL AUDIO
-import librosa.display
-plt.figure(figsize=(12, 5))
-librosa.display.waveshow(y=data, sr=sr)
+# import librosa.display
+# plt.figure(figsize=(12, 5))
+# librosa.display.waveshow(y=data, sr=sr)
 # sd.play(data,sr)
-plt.show()
+# plt.show()
 
 # AUDIO WITH NOISE
-x = noise(data)
-plt.figure(figsize=(12,5))
-librosa.display.waveshow(y=x, sr=sr)
+# x = noise(data)
+# plt.figure(figsize=(12,5))
+# librosa.display.waveshow(y=x, sr=sr)
 # sd.play(data,sr)
-plt.show()
+# plt.show()
 
 # STRETCHED AUDIO
-x = stretch(data)
-plt.figure(figsize=(12, 5))
-librosa.display.waveshow(y=x, sr=sr)
+# x = stretch(data)
+# plt.figure(figsize=(12, 5))
+# librosa.display.waveshow(y=x, sr=sr)
 # sd.play(data,sr)
 # plt.show()
 
 # SHIFTED AUDIO
-x = shift(data)
-plt.figure(figsize=(12,5))
-librosa.display.waveshow(y=x, sr=sr)
+# x = shift(data)
+# plt.figure(figsize=(12,5))
+# librosa.display.waveshow(y=x, sr=sr)
 # sd.play(data,sr)
 # plt.show()
 
 
 # PITCHED AUDIO
-x = pitch(data, sr)
-plt.figure(figsize=(12, 5))
-librosa.display.waveshow(y=x, sr=sr)
+# x = pitch(data, sr)
+# plt.figure(figsize=(12, 5))
+# librosa.display.waveshow(y=x, sr=sr)
 # sd.play(data,sr)
 # plt.show()
 
@@ -237,16 +242,17 @@ def get_features(path, duration=2.5, offset=0.6):
 
 
 
-# X,Y=[],[]
-# for path,emotion,index in tqdm (zip(data_path.Path,data_path.Emotions,range(data_path.Path.shape[0]))):
-#     features=get_features(path)
-#     if index%500==0:
-#         print(f'{index} audio has been processed')
-#     for i in features:
-#         X.append(i)
-#         Y.append(emotion)
-# print('Done')
-# Emotions = pd.DataFrame(X)
-# Emotions['Emotions'] = Y
-# Emotions.to_csv('emotion.csv', index=False)
-# Emotions.head()
+X,Y=[],[]
+for path,emotion,index in tqdm(zip(data_path.Path,data_path.Emotions,range(data_path.Path.shape[0]))):
+    features=get_features(path)
+    if index%500==0:
+        print(f'{index} audio has been processed')
+    for i in features:
+        X.append(i)
+        Y.append(emotion)
+print('Done')
+Emotions = pd.DataFrame(X)
+Emotions['Emotions'] = Y
+Emotions.to_csv('emotion.csv', index=False)
+print(f'Feature extraction complete! emotion.csv created with {len(Emotions)} samples')
+Emotions.head()
