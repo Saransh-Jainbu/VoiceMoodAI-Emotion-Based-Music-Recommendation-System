@@ -1,0 +1,23 @@
+# FastAPI Backend Dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+
+# PyTorch (with CUDA support)
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+torchaudio==2.5.1+cu121
+
+# Audio Processing
+librosa==0.10.2
+soundfile==0.12.1
+audioread==3.0.1
+
+# Data Science
+numpy==2.0.2
+pandas==2.2.3
+scikit-learn==1.6.0
+
+# Utilities
+joblib==1.4.2
+python-dotenv==1.0.1
