@@ -42,6 +42,7 @@ VoiceMood AI is a revolutionary music recommendation system that uses advanced a
 - **Curated Database**: 1000+ songs across all emotion categories
 - **Artist & Song Info**: Complete metadata for each recommendation
 - **Dynamic Playlists**: Context-aware music suggestions
+- **Spotify Integration**: Direct links to Spotify with personalized recommendations
 
 ### 🚀 Performance
 - **GPU Acceleration**: CUDA 12.1 with PyTorch optimization
@@ -93,7 +94,47 @@ VoiceMood AI is a revolutionary music recommendation system that uses advanced a
 
 ---
 
-## 🚀 Quick Start
+## ⚠️ Model Limitations & Best Practices
+
+### 🎭 Training Data Characteristics
+The emotion detection model is trained exclusively on **acted emotional speech datasets** (RAVDESS, CREMA-D, TESS, SAVEE). These datasets contain:
+- Professional actors performing scripted emotional expressions
+- Controlled recording environments
+- Clear, exaggerated emotional cues
+- Standardized 2-3 second audio clips
+
+### 🎯 When Predictions Work Best
+- **Acted performances**: Audio from movies, theater, or deliberate emotional expressions
+- **Clear speech**: Well-articulated vocal recordings
+- **Similar duration**: 2-5 second clips (model processes 2.5 seconds starting at 0.6s offset)
+- **Speech content**: Vocal expressions rather than music, sound effects, or noise
+
+### � When Predictions May Be Inaccurate
+- **Real conversations**: Natural, spontaneous speech may not match acted patterns
+- **Music or singing**: Model expects speech features, not musical elements
+- **Background noise**: Environmental sounds can interfere with feature extraction
+- **Non-speech audio**: Whispers, cries, or non-verbal sounds
+- **Different accents/languages**: Model trained primarily on English speech
+- **Short/long audio**: Very brief (<1s) or very long (>10s) recordings
+
+### 💡 Recommendations for Best Results
+1. **Use clear voice recordings** with minimal background noise
+2. **Speak with exaggerated emotion** similar to acting performances
+3. **Keep recordings 2-5 seconds** for optimal processing
+4. **Try different emotional expressions** if results seem off
+5. **Consider the context**: Model detects acted emotions, not clinical psychological states
+
+### 🔄 Emotion-to-Mood Mapping
+The music recommendation system uses intelligent mood mapping since song metadata often uses descriptive terms rather than exact emotion labels:
+- **Happy** → happy, cheerful, joyous, uplifting, euphoric
+- **Sad** → sad, melancholy, melancholic, plaintive, poignant
+- **Neutral** → neutral, calm, laid-back, reserved
+- **Angry** → angry, aggressive, outraged, hostile, fierce
+- **Fear** → anxious, tense, ominous, menacing, atmospheric, paranoid, suspense, nervous
+- **Disgust** → disgust, bitter, harsh, hostile
+- **Surprise** → surprise, surprising, unexpected
+
+---
 
 ### Prerequisites
 - Python 3.11+
@@ -123,17 +164,22 @@ VoiceMood AI is a revolutionary music recommendation system that uses advanced a
 
 4. **Download datasets** (see [Datasets](#datasets) section)
 
-5. **Run data preprocessing**
+5. **Set up Spotify integration** (optional but recommended)
+   ```bash
+   python spotify_setup.py
+   ```
+
+6. **Run data preprocessing**
    ```bash
    python Data_Preprocessing.py
    ```
 
-6. **Train the model** (optional - pretrained model included)
+7. **Train the model** (optional - pretrained model included)
    ```bash
    python Emotion_detection_pytorch.py
    ```
 
-7. **Launch the web app**
+8. **Launch the web app**
    ```bash
    streamlit run predict_pytorch.py
    ```
@@ -143,7 +189,73 @@ VoiceMood AI is a revolutionary music recommendation system that uses advanced a
 1. **Open the app**: Navigate to `http://localhost:8501`
 2. **Upload audio**: Choose a voice recording (WAV/MP3/FLAC/OGG)
 3. **Get emotion**: AI analyzes your voice in real-time
-4. **Enjoy music**: Receive personalized recommendations
+4. **Enjoy music**: Receive personalized recommendations from both local database and Spotify
+5. **Listen instantly**: Click Spotify links to listen immediately on Spotify
+
+---
+
+## 🎵 Spotify Integration
+
+VoiceMood AI includes powerful Spotify integration for enhanced music discovery:
+
+### Features
+- **Personalized Recommendations**: Spotify's algorithm + emotion mapping
+- **Audio Feature Matching**: Maps emotions to valence, energy, danceability, etc.
+- **Direct Streaming**: Click links to listen instantly on Spotify
+- **Embed Players**: Optional in-app Spotify players
+- **Fallback System**: Works even without Spotify API access
+- **Playlist Creation**: Create Spotify playlists from emotion recommendations (requires OAuth)
+- **User Authentication**: Access personalized Spotify features
+
+### Setup
+1. **Get Spotify Credentials**:
+   ```bash
+   python spotify_setup.py
+   ```
+   This will guide you through getting Client ID and Client Secret from Spotify Developer Dashboard.
+
+2. **Set Redirect URI** (for advanced features):
+   - Go to your [Spotify App Dashboard](https://developer.spotify.com/dashboard)
+   - Edit your app settings
+   - Add `http://127.0.0.1:8501` to "Redirect URIs" (use explicit IP, not localhost)
+   - **Note**: Spotify requires explicit IPv4/IPv6 addresses for loopback redirects
+   - This enables playlist creation and user-specific features
+
+3. **Environment Variables** (alternative):
+   ```bash
+   export SPOTIFY_CLIENT_ID="your_client_id"
+   export SPOTIFY_CLIENT_SECRET="your_client_secret"
+   export SPOTIFY_REDIRECT_URI="http://127.0.0.1:8501"  # Spotify-compliant loopback address
+   ```
+
+### Emotion-to-Music Mapping
+- **Happy** → Upbeat pop, dance, party music
+- **Sad** → Acoustic, indie, folk ballads
+- **Angry** → Rock, metal, high-energy tracks
+- **Calm** → Ambient, classical, lo-fi beats
+- **Fear** → Atmospheric, soundtrack music
+- **Surprise** → Electronic, upbeat discoveries
+
+### Advanced Features (OAuth)
+For playlist creation and user-specific features, use OAuth authentication:
+
+```python
+from spotify_integration import SpotifyRecommender
+
+# Initialize with OAuth
+recommender = SpotifyRecommender(use_oauth=True)
+
+# Get authorization URL
+auth_url = recommender.get_auth_url()
+print(f"Visit: {auth_url}")
+
+# After user authorizes, use the code from redirect URL
+# recommender.set_oauth_token(authorization_code)
+
+# Create emotion-based playlist
+track_ids = ["spotify_track_id_1", "spotify_track_id_2"]
+playlist_url = recommender.create_emotion_playlist("happy", track_ids)
+```
 
 ---
 

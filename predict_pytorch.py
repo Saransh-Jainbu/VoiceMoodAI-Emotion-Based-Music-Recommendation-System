@@ -8,9 +8,22 @@ import torch
 import torch.nn as nn
 import warnings
 import sys
-from pydub import AudioSegment
 import streamlit as st
 import tempfile
+import os
+
+# Set ffmpeg path for pydub before importing
+ffmpeg_path = os.path.join(os.getcwd(), 'ffmpeg_temp', 'ffmpeg-8.0-essentials_build', 'bin', 'ffmpeg.exe')
+if os.path.exists(ffmpeg_path):
+    os.environ['PATH'] = os.path.dirname(ffmpeg_path) + os.pathsep + os.environ.get('PATH', '')
+    # Set converter path for pydub
+    import pydub
+    pydub.AudioSegment.converter = ffmpeg_path
+
+from pydub import AudioSegment
+
+# Import Spotify integration
+from spotify_integration import get_spotify_recommendations, spotify_recommender
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -167,7 +180,7 @@ def prediction(path1):
         predicted_class = predicted.item()
 
     # Convert prediction to emotion label
-    emotion_labels = ['neutral', 'calm', 'happy', 'sad', 'angry', 'fear', 'disgust']
+    emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
     if predicted_class < len(emotion_labels):
         return emotion_labels[predicted_class]
     else:
@@ -188,13 +201,15 @@ def recommendations(s):
     elif s == 'neutral':
         emotion = 'Neutral'
     elif s == 'calm':
-        emotion = 'Calm'
+        emotion = 'Calm'  # Keep calm mapping for backward compatibility
     elif s == 'angry':
         emotion = 'Angry'
     elif s == 'fear':
         emotion = 'Fear'
     elif s == 'disgust':
         emotion = 'Disgust'
+    elif s == 'surprise':
+        emotion = 'Surprise'
     else:
         print("No emotion matched")
         return pd.DataFrame()
@@ -207,13 +222,32 @@ def recommendations(s):
         for row in csvreader:
             rows.append(row)
 
+        # Define synonyms / related mood tags for emotions that may not be exact matches in songs.csv
+        synonyms = {
+            'happy': ['happy', 'cheerful', 'joyous', 'uplifting', 'euphoric'],
+            'sad': ['sad', 'melancholy', 'melancholic', 'plaintive', 'poignant'],
+            'neutral': ['neutral', 'calm', 'laid-back', 'reserved'],
+            'calm': ['calm', 'relaxed', 'mellow', 'soft', 'gentle'],
+            'angry': ['angry', 'aggressive', 'outraged', 'hostile', 'fierce'],
+            'fear': ['anxious', 'tense', 'ominous', 'menacing', 'atmospheric', 'paranoid', 'suspense', 'nervous'],
+            'disgust': ['disgust', 'bitter', 'harsh', 'hostile'],
+            'surprise': ['surprise', 'surprising', 'unexpected']
+        }
+
         for i in range(len(rows)):
             if i == 0:  # Skip header
                 continue
-            words = rows[i][3].split(",")  # Moods column
-            for word in words:
-                if word.strip().lower() == emotion.lower():
+            # Normalize mood tags from CSV
+            words = [w.strip().lower() for w in rows[i][3].split(",")]
+            # If exact emotion tag exists in the song's mood tags, add it
+            if emotion.lower() in words:
+                songs.append(rows[i])
+                continue
+            # Otherwise check synonyms mapping (if any)
+            for syn in synonyms.get(emotion.lower(), []):
+                if syn in words:
                     songs.append(rows[i])
+                    break
 
         pd.set_option('display.max_rows', 500)
         pd.set_option('display.max_columns', 500)
@@ -238,7 +272,27 @@ def convert_to_wav(input_file):
         print(f"Error converting file: {e}")
         return None
 
-st.title("Music Recommendation using Voice Emotion (PyTorch)")
+st.title("🎵 VoiceMood AI - Emotion-Based Music Discovery")
+st.markdown("""
+**Discover music through your voice with AI-powered emotion detection!**
+
+🎭 **Advanced Features:**
+- Real-time emotion detection from voice (7 emotions)
+- 97.09% accuracy with PyTorch CNN
+- GPU acceleration for lightning-fast processing
+- Dual recommendation system: Local + Spotify
+- Privacy-first: All processing happens locally
+
+🎵 **How it works:**
+1. Upload any voice recording (WAV/MP3/FLAC/OGG)
+2. AI analyzes your emotional state
+3. Get personalized music recommendations from both local database and Spotify
+4. Listen instantly with Spotify integration!
+
+⚠️ **Important Note:** This model is trained on acted emotional speech datasets. For best results, use clear voice recordings with exaggerated emotional expressions, similar to acting performances. Real conversations or music may produce unexpected results.
+""")
+
+st.divider()
 
 uploaded_file = st.file_uploader("Upload Your Audio File", type=["wav", "mp3", "flac", "ogg"])
 if uploaded_file is not None:
@@ -264,12 +318,56 @@ if uploaded_file is not None:
     s = prediction(tmp_path)
     st.write(f"Your mood is: **{s.capitalize()}**")
 
-    dataframe = recommendations(s)
-    if not dataframe.empty:
-        st.write("🎵 **Recommended songs that match your mood:**")
-        st.dataframe(dataframe)
-    else:
-        st.write("😔 No songs found for this emotion in our database")
+    # Create two columns for recommendations
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("🎵 **Local Music Recommendations:**")
+        dataframe = recommendations(s)
+        if not dataframe.empty:
+            st.dataframe(dataframe)
+        else:
+            st.write("😔 No songs found for this emotion in our database")
+
+    with col2:
+        st.write("🎵 **Spotify Recommendations:**")
+        try:
+            spotify_recs = get_spotify_recommendations(s, 5)
+            if spotify_recs:
+                for i, rec in enumerate(spotify_recs, 1):
+                    with st.container():
+                        col_a, col_b = st.columns([1, 3])
+                        with col_a:
+                            if rec.get('image_url'):
+                                st.image(rec['image_url'], width=60)
+                            else:
+                                st.write("🎵")
+                        with col_b:
+                            st.write(f"**{i}. {rec['name']}**")
+                            st.write(f"*{rec['artist']}*")
+                            st.write(f"Album: {rec.get('album', 'N/A')}")
+
+                        # Spotify link
+                        if rec.get('spotify_url'):
+                            st.markdown(f"[🔗 Listen on Spotify]({rec['spotify_url']})")
+
+                        # Embed player (optional - can be toggled)
+                        if st.checkbox(f"Show player for {rec['name']}", key=f"embed_{i}"):
+                            if rec.get('embed_url'):
+                                st.components.v1.html(rec['embed_url'], height=152)
+
+                        st.divider()
+            else:
+                st.write("🎵 Spotify recommendations not available")
+                st.info("💡 **To enable Spotify recommendations:**\n"
+                       "1. Go to https://developer.spotify.com/dashboard\n"
+                       "2. Create an app and get Client ID & Secret\n"
+                       "3. Set environment variables:\n"
+                       "   - SPOTIFY_CLIENT_ID\n"
+                       "   - SPOTIFY_CLIENT_SECRET")
+        except Exception as e:
+            st.error(f"Spotify integration error: {e}")
+            st.info("Local recommendations are still available above! 🎵")
 
     # Clean up the temporary file
     import os

@@ -211,3 +211,24 @@ Thumbs.db
 # Streamlit cache
 .streamlit/
 
+# FFmpeg (binary files)
+ffmpeg_temp/
+ffmpeg.zip
+*.exe
+*.dll
+
+# Spotify credentials and cache
+.cache
+.cache-*
+spotify_cache/
+
+# Test files
+test_*.py
+*_test.py
+TESTING_*.md
+
+# Music database (if sensitive)
+# songs.csv
+
+# VS Code workspace files
+*.code-workspace
