@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Music, User, Disc } from 'lucide-react';
+import SpotifyWidget, { SpotifyFeaturedSection } from './SpotifyWidget';
 
 interface MusicRecommendationsProps {
   emotion: string;
@@ -9,19 +9,15 @@ interface MusicRecommendationsProps {
     name: string;
     artist: string;
     album: string;
+    spotifyUrl?: string;
+    previewUrl?: string;
+    albumArt?: string;
   }>;
 }
 
 export default function MusicRecommendations({ emotion, recommendations }: MusicRecommendationsProps) {
   if (!recommendations || recommendations.length === 0) {
-    return (
-      <div className="card-3d rounded-3xl p-8 text-center">
-        <Music className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <p className="text-gray-400">
-          No recommendations found for {emotion}
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -31,50 +27,29 @@ export default function MusicRecommendations({ emotion, recommendations }: Music
       transition={{ delay: 0.4 }}
       className="card-3d rounded-3xl p-8"
     >
-      <h3 className="text-2xl font-bold mb-2 text-white">
-        Music Recommendations
-      </h3>
-      <p className="text-sm mb-6 text-gray-400">
-        Curated tracks matching your <span className="font-semibold text-white">{emotion}</span> emotional state
-      </p>
-
-      <div className="grid gap-4">
+      <SpotifyFeaturedSection emotion={emotion} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {recommendations.slice(0, 8).map((song, index) => (
-          <motion.div
-            key={`${song.name}-${index}`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 + index * 0.05 }}
-            whileHover={{ scale: 1.02, x: 4 }}
-            className="rounded-2xl p-6 transition-all cursor-pointer hover-lift bg-white/5 border border-white/10"
-          >
-            <div className="flex items-start gap-4">
-              {/* Icon */}
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex-shrink-0">
-                <Music className="w-5 h-5 text-white" />
-              </div>
-
-              {/* Song Info */}
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-lg mb-1 truncate text-white">
-                  {song.name}
-                </h4>
-                
-                <div className="flex items-center gap-3 text-sm text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span className="truncate">{song.artist}</span>
-                  </div>
-                  <span>•</span>
-                  <div className="flex items-center gap-1">
-                    <Disc className="w-3.5 h-3.5" />
-                    <span className="truncate">{song.album}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          <SpotifyWidget
+            key={`${song.name}-${song.artist}-${index}`}
+            trackName={song.name}
+            artist={song.artist}
+            album={song.album}
+            spotifyUrl={song.spotifyUrl}
+            previewUrl={song.previewUrl}
+            albumArt={song.albumArt}
+            index={index}
+          />
         ))}
+      </div>
+
+      {/* Spotify Attribution */}
+      <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-center gap-2 text-xs text-gray-500">
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+        </svg>
+        <span>Powered by your local database • Enhanced with Spotify</span>
       </div>
     </motion.div>
   );

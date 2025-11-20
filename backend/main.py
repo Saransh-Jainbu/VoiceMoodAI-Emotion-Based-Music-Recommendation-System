@@ -17,9 +17,35 @@ sys.path.append(str(parent_dir))
 # Change working directory to parent for file access
 os.chdir(parent_dir)
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    env_path = parent_dir / '.env'
+    load_dotenv(env_path)
+    print(f"📁 Loaded .env from: {env_path}")
+    print(f"   SPOTIFY_CLIENT_ID: {os.getenv('SPOTIFY_CLIENT_ID')[:20]}..." if os.getenv('SPOTIFY_CLIENT_ID') else "   ⚠️ SPOTIFY_CLIENT_ID not found")
+except Exception as e:
+    print(f"⚠️ Could not load .env: {e}")
+
 from utils.model_utils import load_model, predict_emotion
 from utils.music_utils import get_recommendations
 from config import SONGS_CSV_PATH, EMOTION_LABELS
+
+# Try to import Spotify integration
+try:
+    sys.path.append(str(parent_dir))
+    from spotify_integration import SpotifyRecommender
+    spotify_recommender = SpotifyRecommender(use_oauth=False)
+    SPOTIFY_ENABLED = spotify_recommender.sp is not None
+    print(f"✓ Spotify integration: {'enabled ✅' if SPOTIFY_ENABLED else 'disabled ❌'}")
+    if SPOTIFY_ENABLED:
+        print(f"  Client ID: {spotify_recommender.client_id[:20]}...")
+except Exception as e:
+    print(f"⚠ Spotify integration unavailable: {e}")
+    import traceback
+    traceback.print_exc()
+    spotify_recommender = None
+    SPOTIFY_ENABLED = False
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -89,6 +115,39 @@ async def get_emotions():
     }
 
 
+def search_spotify_track(track_name: str, artist: str, recommender) -> dict:
+    """
+    Search for a track on Spotify and get its details
+    
+    Args:
+        track_name: Name of the track
+        artist: Name of the artist
+        recommender: SpotifyRecommender instance
+        
+    Returns:
+        Dictionary with spotifyUrl, previewUrl, albumArt or None
+    """
+    try:
+        if not recommender or not recommender.sp:
+            return None
+            
+        # Search for the track
+        query = f"track:{track_name} artist:{artist}"
+        results = recommender.sp.search(q=query, type='track', limit=1)
+        
+        if results['tracks']['items']:
+            track = results['tracks']['items'][0]
+            return {
+                'spotifyUrl': track['external_urls']['spotify'],
+                'previewUrl': track.get('preview_url'),
+                'albumArt': track['album']['images'][0]['url'] if track['album']['images'] else None
+            }
+        return None
+    except Exception as e:
+        print(f"Spotify search error for {track_name} by {artist}: {e}")
+        return None
+
+
 @app.post("/api/detect")
 async def detect_emotion(file: UploadFile = File(...)):
     """
@@ -142,15 +201,34 @@ async def detect_emotion(file: UploadFile = File(...)):
             sorted(confidence_dict.items(), key=lambda x: x[1], reverse=True)
         )
         
-        # Format recommendations
+        # Format recommendations with Spotify enrichment
         recommendations_list = []
         if not recommendations.empty:
-            for _, row in recommendations.head(10).iterrows():
-                recommendations_list.append({
+            print(f"🎵 Enriching {len(recommendations.head(10))} songs with Spotify data...")
+            for idx, row in recommendations.head(10).iterrows():
+                song_data = {
                     'name': row['name'],
                     'artist': row['artist'],
                     'album': row.get('album', row.get('song_id', 'Unknown'))
-                })
+                }
+                
+                # Enrich with Spotify data if available
+                if SPOTIFY_ENABLED and spotify_recommender:
+                    print(f"  Searching Spotify for: {row['name']} by {row['artist']}")
+                    spotify_data = search_spotify_track(
+                        row['name'], 
+                        row['artist'],
+                        spotify_recommender
+                    )
+                    if spotify_data:
+                        song_data.update(spotify_data)
+                        print(f"    ✅ Found: {spotify_data.get('albumArt', 'No art')[:50]}")
+                    else:
+                        print(f"    ⚠️ Not found on Spotify")
+                else:
+                    print(f"  ⚠️ Spotify disabled or not initialized")
+                
+                recommendations_list.append(song_data)
         
         return JSONResponse({
             "success": True,
@@ -188,6 +266,10 @@ async def get_stats():
             "device": str(device) if device else "cpu",
             "cuda_available": torch.cuda.is_available(),
             "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None
+        },
+        "spotify": {
+            "enabled": SPOTIFY_ENABLED,
+            "status": "connected" if SPOTIFY_ENABLED else "not configured"
         }
     }
 

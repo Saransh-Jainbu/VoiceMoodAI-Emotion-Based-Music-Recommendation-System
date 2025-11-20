@@ -389,94 +389,91 @@ export default function LandingPage() {
 
         {/* CTA Section with Floating Elements */}
         <section className="py-32 px-4 relative overflow-hidden">
-          {/* Floating Gradient Orbs */}
+          {/* Minimalist Floating Orbs */}
           <motion.div
             animate={{
-              x: [0, 100, 0],
-              y: [0, -50, 0],
-              scale: [1, 1.2, 1],
+              x: [0, 50, 0],
+              y: [0, -30, 0],
             }}
             transition={{
               duration: 15,
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="absolute top-10 left-10 w-64 h-64 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 blur-3xl opacity-30"
+            className="absolute top-20 left-20 w-48 h-48 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 blur-3xl"
           />
           <motion.div
             animate={{
-              x: [0, -100, 0],
-              y: [0, 50, 0],
-              scale: [1, 1.3, 1],
+              x: [0, -50, 0],
+              y: [0, 40, 0],
             }}
             transition={{
               duration: 18,
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="absolute bottom-10 right-10 w-80 h-80 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 blur-3xl opacity-30"
+            className="absolute bottom-20 right-20 w-64 h-64 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 blur-3xl"
           />
 
-          <div className="max-w-5xl mx-auto relative z-10">
+          <div className="max-w-4xl mx-auto relative z-10">
             <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.8 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="relative group"
+              className="text-center space-y-8"
             >
-              {/* Glowing Border Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-3xl opacity-75 group-hover:opacity-100 blur-lg transition-all duration-500" />
-              
-              {/* Card */}
-              <div className="relative bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 backdrop-blur-2xl rounded-3xl p-16 text-center border border-white/10">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute top-10 right-10 w-20 h-20 border-4 border-purple-500/30 border-t-purple-500 rounded-full"
-                />
-                <motion.div
-                  animate={{ rotate: [360, 0] }}
-                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                  className="absolute bottom-10 left-10 w-16 h-16 border-4 border-pink-500/30 border-t-pink-500 rounded-full"
-                />
+              {/* Simple Badge */}
+              <motion.div
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.5, type: "spring" }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10"
+              >
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-sm text-gray-300">AI Ready • 97.09% Accurate</span>
+              </motion.div>
 
-                <h2 className="text-5xl md:text-6xl font-black text-white mb-6">
-                  Ready to Analyze Emotions?
-                </h2>
-                <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
-                  Upload your audio file and get instant emotion detection results with{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 font-bold">
-                    industry-leading accuracy
-                  </span>
-                </p>
-                
-                <Link href="/app">
-                  <motion.button
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="group relative px-12 py-5 rounded-2xl text-white font-black text-xl overflow-hidden"
-                  >
-                    {/* Animated Background */}
-                    <motion.div
-                      animate={{
-                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: "linear"
-                      }}
-                      className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600"
-                      style={{ backgroundSize: '200% 100%' }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 opacity-0 group-hover:opacity-100 blur-2xl transition-all" />
-                    <span className="relative flex items-center gap-3">
-                      Get Started Now
-                      <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-                    </span>
-                  </motion.button>
-                </Link>
+              {/* Clean Heading */}
+              <h2 className="text-5xl md:text-6xl font-bold text-white leading-tight">
+                Ready to analyze emotions?
+              </h2>
+              
+              {/* Simple Description */}
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+                Upload your audio and discover the emotion behind the voice in seconds
+              </p>
+              
+              {/* Clean CTA Button */}
+              <Link href="/app">
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-2xl font-semibold text-lg overflow-hidden shadow-xl hover:shadow-2xl transition-all"
+                >
+                  <span className="relative z-10">Start Analyzing</span>
+                  <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                  
+                  {/* Subtle hover effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-pink-100 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </motion.button>
+              </Link>
+
+              {/* Trust Indicators */}
+              <div className="flex items-center justify-center gap-8 pt-8 text-sm text-gray-500">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-gray-500" />
+                  <span>No signup required</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-gray-500" />
+                  <span>Process locally</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-gray-500" />
+                  <span>Free to use</span>
+                </div>
               </div>
             </motion.div>
           </div>
